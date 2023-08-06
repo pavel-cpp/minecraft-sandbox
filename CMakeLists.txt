@@ -35,7 +35,7 @@ add_executable(
         headers/dialog.h
         source/dialog.cpp
         ui/dialog.ui
-        headers/bot.h
+        headers/Bot.h
         headers/fplib.h
         source/fplib.cpp
         headers/realonline.h

@@ -2,9 +2,7 @@
 #include "ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
-{
+        : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
     ui->Chat->setReadOnly(true);
     ui->login->setEnabled(false);
@@ -16,132 +14,130 @@ MainWindow::MainWindow(QWidget *parent)
     QIcon icon;
     icon.addFile("icon.png");
     setWindowIcon(icon);
-    serverInfo.setWindowIcon(icon);
+    dialog_server_info.setWindowIcon(icon);
 
-    serverInfo.setWindowTitle("MCSB");
+    dialog_server_info.setWindowTitle("MCSB");
     close();
-    serverInfo.exec();
+    dialog_server_info.exec();
     show();
 
     nickList();
-    RO.BotThread = &Bot;
-    RO.userAmount = 0;
-    RO.ip = serverInfo.getIP();
-    RO.port = serverInfo.getPort();
+    real_online_system_thread = make_unique<RealOnline>(nullptr, bots);
+    real_online_system_thread->SetCurTraffic(0);
+    real_online_system_thread->SetServerParams(dialog_server_info.GetIP(), dialog_server_info.GetPort());
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
     delete ui;
 }
 
-void MainWindow::nickList(){
+void MainWindow::nickList() {
     FakePlayer fp;
-    fp.bungeecord = serverInfo.getBungeecord();
-    fp.compression = serverInfo.getCompression();
+    fp.bungeecord = dialog_server_info.GetBungeecord();
+    fp.compression = dialog_server_info.GetCompression();
     ifstream nicks("Nicks.txt");
     ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "Player Initialization: ");
-    while(!nicks.eof()){
-        bot buffer;
+    while (!nicks.eof()) {
+        Bot buffer;
         nicks >> buffer.nick;
-        ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "    " + QString::fromStdString(buffer.nick) + " has been initialized");
+        ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "    " + QString::fromStdString(buffer.nick) +
+                          " has been initialized");
         buffer.attributes = fp;
-        buffer.isBusy = false;
-        buffer.onlineStatus = false;
-        Bot.push_back(buffer);
+        buffer.onlineStatus = buffer.isBusy = false;
+        bots.push_back(buffer);
         ui->listOfPlayers->addItem(QString::fromStdString(buffer.nick));
     }
     nicks.close();
 }
 
-void MainWindow::on_send_clicked()
-{
-    if(Bot[ui->listOfPlayers->currentRow()].isBusy){
-        SendCommandFP(ui->chatLine->toPlainText().toStdString().c_str(), &Bot[ui->listOfPlayers->currentRow()].attributes);
-    }else if(lastRow != -1){
-        if(Bot[lastRow].isBusy){
-            SendCommandFP(ui->chatLine->toPlainText().toStdString().c_str(), &Bot[lastRow].attributes);
+void MainWindow::on_send_clicked() {
+    if (bots[ui->listOfPlayers->currentRow()].isBusy) {
+        SendCommandFP(ui->chatLine->toPlainText().toStdString().c_str(),
+                      &bots[ui->listOfPlayers->currentRow()].attributes);
+    } else if (last_selected_row != -1) {
+        if (bots[last_selected_row].isBusy) {
+            SendCommandFP(ui->chatLine->toPlainText().toStdString().c_str(), &bots[last_selected_row].attributes);
         }
     }
     ui->chatLine->setPlainText("");
 }
 
 
-void MainWindow::on_listOfPlayers_doubleClicked(const QModelIndex &index)
-{
-    if(Bot[ui->listOfPlayers->currentRow()].isBusy == false){
-        Bot[ui->listOfPlayers->currentRow()].isBusy = true;
-        if(lastRow != ui->listOfPlayers->currentRow()){
-            if(lastRow != -1){
-                Bot[lastRow].isBusy = false;
-            }
-            lastRow = ui->listOfPlayers->currentRow();
+void MainWindow::on_listOfPlayers_doubleClicked(const QModelIndex &index) {
+    int row = index.row();
+    if (bots[row].isBusy) return;
+    bots[row].isBusy = true;
+    if (last_selected_row != row) {
+        if (last_selected_row != -1) {
+            bots[last_selected_row].isBusy = false;
         }
+        last_selected_row = row;
     }
-    ui->Chat->setText(ui->Chat->toPlainText() + '\n' + QString::fromStdString(Bot[ui->listOfPlayers->currentRow()].nick) + " selected!");
-    ui->Bot->setText("Bot: " + QString::fromStdString(Bot[ui->listOfPlayers->currentRow()].nick));
+    ui->Chat->setText(
+            ui->Chat->toPlainText() + '\n' + QString::fromStdString(bots[ui->listOfPlayers->currentRow()].nick) +
+            " selected!");
+    ui->bots->setText("bots: " + QString::fromStdString(bots[ui->listOfPlayers->currentRow()].nick));
     checkOnline();
 }
 
-void MainWindow::on_login_clicked()
-{
-    Bot[ui->listOfPlayers->currentRow()].onlineStatus = true;
-    CreateFP(Bot[ui->listOfPlayers->currentRow()].nick.c_str(), &Bot[ui->listOfPlayers->currentRow()].attributes, serverInfo.getIP().toStdString().c_str(), serverInfo.getPort());
+void MainWindow::on_login_clicked() {
+    bots[ui->listOfPlayers->currentRow()].onlineStatus = true;
+    CreateFP(bots[ui->listOfPlayers->currentRow()].nick.c_str(), &bots[ui->listOfPlayers->currentRow()].attributes,
+             dialog_server_info.GetIP().c_str(), dialog_server_info.GetPort());
     checkOnline();
 }
 
-void MainWindow::on_logout_clicked()
-{
-    Bot[ui->listOfPlayers->currentRow()].onlineStatus = false;
-    DestroyFP(&Bot[ui->listOfPlayers->currentRow()].attributes);
+void MainWindow::on_logout_clicked() {
+    bots[ui->listOfPlayers->currentRow()].onlineStatus = false;
+    DestroyFP(&bots[ui->listOfPlayers->currentRow()].attributes);
     checkOnline();
 }
 
-void MainWindow::checkOnline(){
-    if(Bot[ui->listOfPlayers->currentRow()].onlineStatus){
+void MainWindow::checkOnline() {
+    if (bots[ui->listOfPlayers->currentRow()].onlineStatus) {
         ui->login->setEnabled(false);
         ui->logout->setEnabled(true);
-    }else{
+    } else {
         ui->login->setEnabled(true);
         ui->logout->setEnabled(false);
     }
 };
 
-void MainWindow::on_CALL_clicked()
-{
+void MainWindow::on_CALL_clicked() {
     ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "Player Connecting:");
-    for (int i = 0; i < Bot.size(); i++){
-        if(!Bot[i].onlineStatus){
-            CreateFP(Bot[i].nick.c_str(), &Bot[i].attributes, serverInfo.getIP().toStdString().c_str(), serverInfo.getPort());
-            ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "    " + QString::fromStdString(Bot[i].nick) + " has been connected");
-            Bot[i].onlineStatus = true;
+    for (Bot bot: bots) {
+        if (!bot.onlineStatus) {
+            CreateFP(bot.nick.c_str(), &bot.attributes, dialog_server_info.GetIP().c_str(),
+                     dialog_server_info.GetPort());
+            ui->Chat->setText(
+                    ui->Chat->toPlainText() + '\n' + "    " + QString::fromStdString(bot.nick) + " has been connected");
+            bot.onlineStatus = true;
         }
     }
-    RO.userAmount = Bot.size() - 1;
+    real_online_system_thread->SetCurTraffic(bots.size() - 1);
 }
 
-void MainWindow::on_DALL_clicked()
-{
+void MainWindow::on_DALL_clicked() {
     ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "Player Connecting:");
-    for (int i = 0; i < Bot.size(); i++){
-        if(Bot[i].onlineStatus == true){
-            DestroyFP(&Bot[i].attributes);
-            ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "    " + QString::fromStdString(Bot[i].nick) + " has been disconnected");
-            Bot[i].onlineStatus = false;
+    for (Bot bot: bots) {
+        if (bot.onlineStatus) {
+            DestroyFP(&bot.attributes);
+            ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "    " + QString::fromStdString(bot.nick) +
+                              " has been disconnected");
+            bot.onlineStatus = false;
         }
     }
-    RO.userAmount = 0;
+    real_online_system_thread->SetCurTraffic(0);
 }
 
 
-void MainWindow::on_RO_stateChanged(int arg1)
-{
-    if(ui->RO->checkState()){
-         RO.status = true;
-         RO.start();
-         ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "Real Online Activated!");
-    }else{
-        RO.status = false;
+void MainWindow::on_RO_stateChanged(int arg1) {
+    if (ui->real_online_system_thread->checkState()) {
+        real_online_system_thread->SetStatus(true);
+        real_online_system_thread->start();
+        ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "Real Online Activated!");
+    } else {
+        real_online_system_thread->SetStatus(false);
         ui->Chat->setText(ui->Chat->toPlainText() + '\n' + "Real Online Deactivated!");
     }
 }

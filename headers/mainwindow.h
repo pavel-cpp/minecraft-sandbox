@@ -43,17 +43,16 @@ private slots:
 private:
 
     void checkOnline();
-
-    Dialog serverInfo;
-
     void nickList();
+
+    Dialog dialog_server_info;
 
     Ui::MainWindow *ui;
 
-    QVector<bot> Bot;
+    QVector<Bot> bots;
 
-    realOnline RO;
+    unique_ptr<RealOnline> real_online_system_thread;
 
-    int lastRow = -1;
+    int last_selected_row = -1;
 };
 #endif // MAINWINDOW_H

@@ -14,9 +14,9 @@ for server stress testing or just for fun.
 ## Functional
 * Real online simulation
 * Custom nicknames
-* Write commands on behalf of any bot
+* Write commands on behalf of any Bot
 * Connect/Disconnect all bots
-* Connect/Disconnect any bot
+* Connect/Disconnect any Bot
 
 ## Supported versions
 * Minecraft 1.12.x

@@ -1,36 +1,55 @@
 #include "../headers/realonline.h"
 
-void realOnline::changeOnline(float persent){
-    bool vector;
-    int needOnline = (BotThread->size() - 1) * persent;
-    if(userAmount > needOnline) vector = false;
-    else vector = true;
-    int nowTime = 3600000 - ((realTime.currentTime().minute()) * 60000) - ((realTime.currentTime().second()) * 1000);
-    int period = nowTime/abs(needOnline-userAmount);
-    qDebug() << (60 - realTime.currentTime().minute()) << nowTime << period << endl;
-    while(userAmount != needOnline){
-        int botNum = rand()%BotThread->size();
-        Sleep(period);
-        if(vector && (*BotThread)[botNum].onlineStatus == false){
-            CreateFP((*BotThread)[botNum].nick.c_str(), &(*BotThread)[botNum].attributes, ip.toStdString().c_str(), port);
-            (*BotThread)[botNum].onlineStatus = true;
-            userAmount++;
+void RealOnline::ChangeOnline(float point){
+    int traffic_request = (bot_threads.size() - 1) * point;
+    bool traffic_move = current_traffic > traffic_request;
+    int current_time_ms = TimeToMs();
+    int time_delta = current_time_ms / abs(traffic_request - current_traffic);
+
+    while(current_traffic != traffic_request){
+        int selected_bot_index = rand() % bot_threads.size();
+        Sleep(time_delta);
+        if(traffic_move && !bot_threads[selected_bot_index].onlineStatus){
+            CreateFP(bot_threads[selected_bot_index].nick.c_str(), &bot_threads[selected_bot_index].attributes, ip.c_str(), port);
+            bot_threads[selected_bot_index].onlineStatus = true;
+            ++current_traffic;
         }
-        if(vector == false && (*BotThread)[botNum].onlineStatus && (*BotThread)[botNum].isBusy == false){
-            DestroyFP(&(*BotThread)[botNum].attributes);
-            (*BotThread)[botNum].onlineStatus = false;
-            userAmount--;
+        if(!traffic_move && bot_threads[selected_bot_index].onlineStatus && !bot_threads[selected_bot_index].isBusy){
+            DestroyFP(&bot_threads[selected_bot_index].attributes);
+            bot_threads[selected_bot_index].onlineStatus = false;
+            --current_traffic;
         }
     }
 }
 
-void realOnline::run(){
+void RealOnline::run(){
     srand(time(NULL));
-    userPersent = 1;
     while(status){
-        int currentHour;
-        if(realTime.currentTime().hour() == 23) currentHour = 0;
-        else currentHour = realTime.currentTime().hour() + 1;
-        changeOnline(graph[currentHour]);
+        int currentHour = QTime::currentTime().hour() % 24;
+        ChangeOnline(graph[currentHour]);
     }
+}
+
+RealOnline::RealOnline(QObject *parent, QVector<Bot> &botThreads)
+        : QThread(parent), bot_threads(botThreads) {}
+
+inline int RealOnline::TimeToMs() {
+    return 3600000 - ((QTime::currentTime().minute()) * 60000) - ((QTime::currentTime().second()) * 1000);
+}
+
+void RealOnline::SetServerParams(const std::string &ip, int port) {
+    this->ip = ip;
+    this->port = port;
+}
+
+void RealOnline::SetStatus(bool value) {
+    status = value;
+}
+
+void RealOnline::SetCurTraffic(int traffic) {
+    current_traffic = traffic;
+}
+
+bool RealOnline::SetStatus() {
+    return status;
 }

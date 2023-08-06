@@ -4,22 +4,27 @@
 #include <QDialog>
 
 namespace Ui {
-class Dialog;
+    class Dialog;
 }
 
-class Dialog : public QDialog
-{
-    Q_OBJECT
+class Dialog : public QDialog {
+Q_OBJECT
 
 public:
     explicit Dialog(QWidget *parent = nullptr);
-    bool getBungeecord();
-    bool getCompression();
-    QString getIP();
-    int getPort();
+
+    bool GetBungeecord();
+
+    bool GetCompression();
+
+    std::string GetIP();
+
+    int GetPort();
+
     ~Dialog();
 
 private slots:
+
     void on_Ok_clicked();
 
 private:

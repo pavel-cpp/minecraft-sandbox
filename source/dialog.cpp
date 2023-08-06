@@ -2,34 +2,31 @@
 #include "ui_dialog.h"
 
 Dialog::Dialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::Dialog)
-{
+        QDialog(parent),
+        ui(new Ui::Dialog) {
     ui->setupUi(this);
 }
 
-Dialog::~Dialog()
-{
+Dialog::~Dialog() {
     delete ui;
 }
 
-bool Dialog::getBungeecord(){
+bool Dialog::GetBungeecord() {
     return ui->bungeecord->checkState();
 }
 
-bool Dialog::getCompression(){
+bool Dialog::GetCompression() {
     return ui->compression->checkState();
 }
 
-QString Dialog::getIP(){
-    return ui->IP->toPlainText();
+std::string Dialog::GetIP() {
+    return ui->IP->toPlainText().toStdString();
 }
 
-int Dialog::getPort(){
+int Dialog::GetPort() {
     return ui->Port->toPlainText().toInt();
 }
 
-void Dialog::on_Ok_clicked()
-{
+void Dialog::on_Ok_clicked() {
     close();
 }

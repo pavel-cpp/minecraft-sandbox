@@ -4,7 +4,7 @@
 #include "fplib.h"
 #include <string>
 
-struct bot
+struct Bot
 {
     std::string nick;
     FakePlayer attributes;

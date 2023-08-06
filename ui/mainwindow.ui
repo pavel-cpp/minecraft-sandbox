@@ -78,9 +78,9 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="QLabel" name="Bot">
+       <widget class="QLabel" name="bots">
         <property name="text">
-         <string>Bot: NULL</string>
+         <string>bots: NULL</string>
         </property>
        </widget>
       </item>
@@ -112,7 +112,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QCheckBox" name="RO">
+         <widget class="QCheckBox" name="real_online_system_thread">
           <property name="text">
            <string>Real Online</string>
           </property>
